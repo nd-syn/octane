@@ -29,18 +29,20 @@ class AuthService:
         self.settings = get_settings()
 
     async def signup(
-        self, username: str, email: str, password: str, display_name: str | None = None
+        self, username: str, password: str, display_name: str | None = None, email: str | None = None
     ) -> tuple[User, str, str]:
-        existing_user = await self.session.execute(
-            select(User).where(
-                (User.username == username) | (User.email == email)
-            )
+        existing = await self.session.execute(
+            select(User).where(User.username == username)
         )
-        existing = existing_user.scalar_one_or_none()
-        if existing:
-            if existing.username == username:
-                raise UsernameTaken(f"username '{username}' is taken")
-            raise EmailTaken(f"email '{email}' is taken")
+        if existing.scalar_one_or_none():
+            raise UsernameTaken(f"username '{username}' is taken")
+
+        if email:
+            existing_email = await self.session.execute(
+                select(User).where(User.email == email)
+            )
+            if existing_email.scalar_one_or_none():
+                raise EmailTaken(f"email '{email}' is taken")
 
         user = User(
             username=username,

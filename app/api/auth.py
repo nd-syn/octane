@@ -21,9 +21,9 @@ async def signup(body: SignupRequest, session: AsyncSession = Depends(get_sessio
     svc = AuthService(session)
     user, access_token, refresh_token = await svc.signup(
         username=body.username,
-        email=body.email,
         password=body.password,
         display_name=body.display_name,
+        email=body.email,
     )
     return TokenResponse(
         access_token=access_token,
