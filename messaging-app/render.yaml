@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: octane
+    runtime: python
+    plan: free
+    buildCommand: "pip install --upgrade pip && pip install -r requirements.txt"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite+aiosqlite:///var/data/messaging.db
+      - key: ENV
+        value: production
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: MASTER_KEY
+        generateValue: true
+      - key: ACCESS_TOKEN_TTL
+        value: "900"
+      - key: REFRESH_TOKEN_TTL
+        value: "2592000"
