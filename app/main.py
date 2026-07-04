@@ -18,9 +18,6 @@ from app.api import api_router
 from app.config import get_settings
 from app.core.exceptions import AppError
 from app.db.session import dispose_engine, get_sessionmaker, init_engine
-from alembic import command
-from alembic.config import Config as AlembicConfig
-
 from app.logging_config import configure_logging, get_logger
 from app.ws import ws_router
 
@@ -52,11 +49,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         log.warning("db_unreachable_at_startup", error=str(e))
 
     try:
-        alembic_cfg = AlembicConfig("alembic.ini")
-        command.upgrade(alembic_cfg, "head")
-        log.info("migrations_applied")
+        async with get_sessionmaker()() as s:
+            await s.run_sync(Base.metadata.create_all)
+        log.info("schema_ready")
     except Exception as e:
-        log.warning("migration_failed", error=str(e))
+        log.warning("schema_creation_failed", error=str(e))
 
     yield
 
