@@ -18,6 +18,9 @@ from app.api import api_router
 from app.config import get_settings
 from app.core.exceptions import AppError
 from app.db.session import dispose_engine, get_sessionmaker, init_engine
+from alembic import command
+from alembic.config import Config as AlembicConfig
+
 from app.logging_config import configure_logging, get_logger
 from app.ws import ws_router
 
@@ -47,6 +50,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         log.info("db_ok")
     except Exception as e:
         log.warning("db_unreachable_at_startup", error=str(e))
+
+    try:
+        alembic_cfg = AlembicConfig("alembic.ini")
+        command.upgrade(alembic_cfg, "head")
+        log.info("migrations_applied")
+    except Exception as e:
+        log.warning("migration_failed", error=str(e))
 
     yield
 
@@ -84,6 +94,13 @@ def create_app() -> FastAPI:
         return JSONResponse(
             status_code=exc.status_code,
             content={"error": exc.code, "detail": exc.message},
+        )
+
+    @app.exception_handler(Exception)
+    async def generic_error_handler(request: Request, exc: Exception) -> JSONResponse:
+        return JSONResponse(
+            status_code=500,
+            content={"error": "internal_error", "detail": str(exc)},
         )
 
     @app.get("/health")
